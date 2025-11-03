@@ -88,12 +88,15 @@ mood = st.selectbox(
 st.markdown("### 🎯 What would you like to explore?")
 
 # --- Category Icons ---
+
 categories = {
     "Music": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
-    "Meditation": "https://cdn-icons-png.flaticon.com/512/3028/3028707.png",
-    "Podcast": "https://cdn-icons-png.flaticon.com/512/727/727240.png",
+    "Meditation": "https://www.shutterstock.com/image-vector/yoga-icon-logo-on-white-600nw-1250774467.jpg",  # lotus position person
+    "Podcast": "https://www.shutterstock.com/image-vector/retro-microphone-sign-vector-illustration-600nw-506413456.jpg",     # microphone icon
     "Reading": "https://cdn-icons-png.flaticon.com/512/2991/2991109.png"
 }
+
+
 
 # --- Interactive Category Buttons ---
 cols = st.columns(len(categories))
