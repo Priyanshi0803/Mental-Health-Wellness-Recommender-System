@@ -1,36 +1,48 @@
 import streamlit as st
 import pandas as pd
+import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# --- Load your CSV data ---
+# --- Load CSV files ---
 music = pd.read_csv("music_catalog.csv")
 meditation = pd.read_csv("meditation_catalog.csv")
 podcasts = pd.read_csv("podcast_catalog.csv")
 reading = pd.read_csv("reading_catalog.csv")
 
-# --- Helper function for recommendations ---
-def get_recommendations(df, mood, top_n=3):
-    """Filter content by mood or fallback to similarity search"""
-    if 'mood_hint' not in df.columns:
-        return df.sample(top_n)
-    
-    mood_filtered = df[df['mood_hint'].str.lower().str.contains(mood.lower(), na=False)]
-    
-    if mood_filtered.empty:
-        tfidf = TfidfVectorizer(stop_words='english')
-        tfidf_matrix = tfidf.fit_transform(df['feature_text'].fillna(''))
-        mood_vec = tfidf.transform([mood])
-        cosine_sim = cosine_similarity(mood_vec, tfidf_matrix).flatten()
-        top_indices = cosine_sim.argsort()[-top_n:][::-1]
-        mood_filtered = df.iloc[top_indices]
-    
-    return mood_filtered.sample(min(top_n, len(mood_filtered)))
+# --- Helper Function ---
+def get_recommendations(df, mood, top_n=10):
+    if df is None or df.empty:
+        return pd.DataFrame()
 
-# --- Streamlit UI Config ---
+    df = df.copy()
+
+    def safe_col(col):
+        return df[col].astype(str) if col in df.columns else ""
+
+    df["combined_text"] = (
+        safe_col("title") + " " +
+        safe_col("artist") + " " +
+        safe_col("creator") + " " +
+        safe_col("tags") + " " +
+        safe_col("mood_hint") + " " +
+        safe_col("feature_text")
+    ).fillna("")
+
+    tfidf = TfidfVectorizer(stop_words="english")
+    tfidf_matrix = tfidf.fit_transform(df["combined_text"])
+    mood_vec = tfidf.transform([mood])
+
+    cosine_sim = cosine_similarity(mood_vec, tfidf_matrix).flatten()
+    df["similarity"] = cosine_sim * 100
+
+    df = df.sort_values(by="similarity", ascending=False)
+    return df.head(top_n)
+
+# --- Streamlit Config ---
 st.set_page_config(page_title="Mood-Based Wellness Recommender", page_icon="🌈", layout="centered")
 
-# --- Custom CSS for beautiful layout ---
+# --- Custom CSS ---
 st.markdown("""
     <style>
     .main-title {
@@ -45,33 +57,62 @@ st.markdown("""
         font-size: 18px;
         margin-bottom: 40px;
     }
-    .option-container {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        margin-top: 20px;
-    }
-    .option {
-        transition: transform 0.2s ease, box-shadow 0.3s ease;
+    .rec-card {
+        background: #fff;
         border-radius: 15px;
-        padding: 10px;
-        background-color: #fff;
-        text-align: center;
-        width: 140px;
-        cursor: pointer;
-        box-shadow: 0px 0px 6px rgba(0,0,0,0.1);
+        padding: 15px 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .option:hover {
-        transform: scale(1.1);
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    .rec-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
-    img {
-        border-radius: 10px;
+
+    /* Gradient Ring Indicator */
+    .circle-container {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background:
+            conic-gradient(
+                from 0deg,
+                #93C5FD 0deg,
+                #3B82F6 90deg,
+                #6366F1 var(--percent),
+                #E5E7EB var(--percent)
+            );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+        transition: background 0.5s ease;
+    }
+
+    .circle-container::before {
+        content: "";
+        position: absolute;
+        width: 55px;
+        height: 55px;
+        background-color: white;
+        border-radius: 50%;
+        z-index: 1;
+    }
+    .circle-container span {
+        position: relative;
+        z-index: 2;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Title + Intro Text ---
+# --- Title ---
 st.markdown("<h1 class='main-title'>🌈 Mood-Based Wellness Recommender</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtext'>Get personalized wellness content based on how you're feeling 💫</p>", unsafe_allow_html=True)
 
@@ -87,57 +128,67 @@ mood = st.selectbox(
 
 st.markdown("### 🎯 What would you like to explore?")
 
-# --- Category Icons ---
-
+# --- Categories ---
 categories = {
     "Music": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
     "Meditation": "https://www.shutterstock.com/image-vector/yoga-icon-logo-on-white-600nw-1250774467.jpg",  # lotus position person
-    "Podcast": "https://www.shutterstock.com/image-vector/retro-microphone-sign-vector-illustration-600nw-506413456.jpg",     # microphone icon
+    "Podcast": "https://www.shutterstock.com/image-vector/retro-microphone-sign-vector-illustration-600nw-506413456.jpg",
     "Reading": "https://cdn-icons-png.flaticon.com/512/2991/2991109.png"
 }
 
-
-
-# --- Interactive Category Buttons ---
 cols = st.columns(len(categories))
-user_choice = None
+user_choice = st.session_state.get("user_choice")
 
 for i, (label, img_url) in enumerate(categories.items()):
     with cols[i]:
         st.image(img_url, width=80)
         if st.button(label):
+            st.session_state.user_choice = label
             user_choice = label
 
-# --- Display Recommendations ---
+# --- Recommendations ---
 if user_choice:
-    st.markdown(f"### ✨ Recommendations for you ({user_choice} - feeling {mood})")
+    st.markdown(f"### ✨ Recommendations for you ({user_choice} - feeling *{mood}*)")
 
-    if user_choice == "Music":
-        recs = get_recommendations(music, mood)
-        st.subheader("🎵 Music Recommendations")
-        for _, row in recs.iterrows():
-            st.markdown(f"- **{row['title']}** by *{row['artist']}*  \n  🔗 [Listen here]({row['url']})")
+    df = {
+        "Music": music,
+        "Meditation": meditation,
+        "Podcast": podcasts,
+        "Reading": reading
+    }.get(user_choice)
 
-    elif user_choice == "Meditation":
-        recs = get_recommendations(meditation, mood)
-        st.subheader("🧘 Guided Meditations")
-        for _, row in recs.iterrows():
-            st.markdown(f"- **{row['title']}**  \n  🔗 [Relax here]({row['url']})")
+    # If first time, generate and store mood-specific recommendations
+    if "recs" not in st.session_state or st.session_state.get("last_mood") != mood or st.session_state.get("last_choice") != user_choice:
+        st.session_state.recs = get_recommendations(df, mood, top_n=10)
+        st.session_state.last_mood = mood
+        st.session_state.last_choice = user_choice
 
-    elif user_choice == "Podcast":
-        recs = get_recommendations(podcasts, mood)
-        st.subheader("🎙️ Podcasts")
-        for _, row in recs.iterrows():
-            host = row['creator'] if 'creator' in row else row.get('host', 'Unknown')
-            st.markdown(f"- **{row['title']}** by *{host}*  \n  🔗 [Listen here]({row['url']})")
+    # Shuffle button
+    if st.button("🔀 Shuffle Recommendations"):
+        st.session_state.recs = st.session_state.recs.sample(frac=1).reset_index(drop=True)
 
-    elif user_choice == "Reading":
-        recs = get_recommendations(reading, mood)
-        st.subheader("📖 Reading Material")
-        for _, row in recs.iterrows():
-            st.markdown(f"- **{row['title']}** by *{row['creator']}*  \n  🔗 [Read here]({row['url']})")
+    recs = st.session_state.recs.head(3)
 
     if recs.empty:
-        st.info("No specific recommendations found for this mood — try another one! 💫")
+        st.info("No recommendations found for this mood. Try another one 💫")
+    else:
+        for _, row in recs.iterrows():
+            title = row.get("title", "Untitled")
+            creator = row.get("artist") or row.get("creator") or "Unknown"
+            url = row.get("url", "#")
+            similarity = row.get("similarity", random.randint(60, 95))
+
+            st.markdown(f"""
+                <div class='rec-card'>
+                    <div>
+                        <strong>{title}</strong><br>
+                        <em>by {creator}</em><br>
+                        <a href='{url}' target='_blank'>🔗 Open Link</a>
+                    </div>
+                    <div class='circle-container' style='--percent:{similarity:.1f}%'>
+                        <span>{similarity:.0f}%</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
 st.caption("🩵 Built to support your mind and mood with care.")
