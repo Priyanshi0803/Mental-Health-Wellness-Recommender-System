@@ -85,35 +85,26 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- Custom Dark Theme CSS ---
+# --- Custom CSS for light theme ---
 st.markdown("""
 <style>
-/* Background */
-body, .main {
-    background-color: #0d0d0d;
-    color: #f0f0f0;
-}
-
-/* Titles */
 .main-title {
     font-size: 42px;
     font-weight: 800;
     text-align: center;
-    color: #ffffff;
+    color: #222;
 }
 .subtext {
     text-align: center;
-    color: #cccccc;
+    color: gray;
     font-size: 18px;
     margin-bottom: 40px;
 }
-
-/* Cards */
 .rec-card {
-    background: #1a1a1a;
+    background: #fff;
     border-radius: 15px;
     padding: 15px 20px;
-    box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     margin-bottom: 15px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
@@ -122,10 +113,8 @@ body, .main {
 }
 .rec-card:hover {
     transform: scale(1.02);
-    box-shadow: 0 4px 14px rgba(255,255,255,0.1);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
-
-/* Circular indicator */
 .circle-container {
     position: relative;
     width: 70px;
@@ -143,7 +132,7 @@ body, .main {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    color: #fff;
+    color: #333;
     font-size: 14px;
     transition: background 0.5s ease;
 }
@@ -152,28 +141,13 @@ body, .main {
     position: absolute;
     width: 55px;
     height: 55px;
-    background-color: #0d0d0d;
+    background-color: white;
     border-radius: 50%;
     z-index: 1;
 }
 .circle-container span {
     position: relative;
     z-index: 2;
-}
-
-/* Buttons & Inputs */
-.stButton>button {
-    background-color: #333333;
-    color: #ffffff;
-    border: none;
-}
-.stButton>button:hover {
-    background-color: #555555;
-    color: #ffffff;
-}
-.stTextInput>div>input {
-    background-color: #1a1a1a;
-    color: #f0f0f0;
 }
 </style>
 """, unsafe_allow_html=True)
