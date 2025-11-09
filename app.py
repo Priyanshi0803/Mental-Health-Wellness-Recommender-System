@@ -37,6 +37,10 @@ def get_recommendations(df, mood, top_n=10):
     cosine_sim = cosine_similarity(mood_vec, tfidf_matrix).flatten()
     df["similarity"] = cosine_sim * 100
 
+    # Normalize to 60-100 for better UI
+    if df["similarity"].max() > 0:
+        df["similarity"] = 60 + 40 * (df["similarity"] / df["similarity"].max())
+
     df = df.sort_values(by="similarity", ascending=False)
     return df.head(top_n)
 
@@ -45,7 +49,6 @@ def detect_mood_from_text(text):
     text = text.lower()
     sentiment = TextBlob(text).sentiment.polarity
 
-    # Keyword-based clues
     mood_keywords = {
         "happy": ["happy", "joy", "excited", "smile", "good", "grateful"],
         "stressed": ["stressed", "pressure", "tense", "tight"],
@@ -62,12 +65,12 @@ def detect_mood_from_text(text):
         "grateful": ["thankful", "grateful", "blessed"]
     }
 
-    # Try matching keywords
+    # Check keywords first
     for mood, words in mood_keywords.items():
         if any(word in text for word in words):
             return mood
 
-    # Fallback to sentiment polarity
+    # Fallback to sentiment
     if sentiment > 0.4:
         return "happy"
     elif sentiment < -0.3:
@@ -76,108 +79,110 @@ def detect_mood_from_text(text):
         return "calm"
 
 # --- Streamlit Config ---
-st.set_page_config(page_title="Mood-Based Wellness Recommender", page_icon="🌈", layout="centered")
+st.set_page_config(
+    page_title="Mood-Based Wellness Recommender",
+    page_icon="🌈",
+    layout="centered"
+)
 
-# --- Custom CSS ---
+# --- Custom Dark Theme CSS ---
 st.markdown("""
-    <style>
-    /* Body background */
-    body, .main {
-        background-color: #0d0d0d;
-        color: #f0f0f0;
-    }
+<style>
+/* Background */
+body, .main {
+    background-color: #0d0d0d;
+    color: #f0f0f0;
+}
 
-    /* Titles and text */
-    .main-title {
-        font-size: 42px;
-        font-weight: 800;
-        text-align: center;
-        color: #ffffff;
-    }
-    .subtext {
-        text-align: center;
-        color: #cccccc;
-        font-size: 18px;
-        margin-bottom: 40px;
-    }
+/* Titles */
+.main-title {
+    font-size: 42px;
+    font-weight: 800;
+    text-align: center;
+    color: #ffffff;
+}
+.subtext {
+    text-align: center;
+    color: #cccccc;
+    font-size: 18px;
+    margin-bottom: 40px;
+}
 
-    /* Cards */
-    .rec-card {
-        background: #1a1a1a;
-        border-radius: 15px;
-        padding: 15px 20px;
-        box-shadow: 0 2px 8px rgba(255,255,255,0.05);
-        margin-bottom: 15px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .rec-card:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 14px rgba(255,255,255,0.1);
-    }
+/* Cards */
+.rec-card {
+    background: #1a1a1a;
+    border-radius: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+    margin-bottom: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.rec-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 14px rgba(255,255,255,0.1);
+}
 
-    /* Circular indicator */
-    .circle-container {
-        position: relative;
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background:
-            conic-gradient(
-                from 0deg,
-                #93C5FD 0deg,
-                #3B82F6 90deg,
-                #6366F1 var(--percent),
-                #E5E7EB var(--percent)
-            );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        color: #fff;
-        font-size: 14px;
-        transition: background 0.5s ease;
-    }
-    .circle-container::before {
-        content: "";
-        position: absolute;
-        width: 55px;
-        height: 55px;
-        background-color: #0d0d0d;
-        border-radius: 50%;
-        z-index: 1;
-    }
-    .circle-container span {
-        position: relative;
-        z-index: 2;
-    }
+/* Circular indicator */
+.circle-container {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background:
+        conic-gradient(
+            from 0deg,
+            #93C5FD 0deg,
+            #3B82F6 90deg,
+            #6366F1 var(--percent),
+            #E5E7EB var(--percent)
+        );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 14px;
+    transition: background 0.5s ease;
+}
+.circle-container::before {
+    content: "";
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    background-color: #0d0d0d;
+    border-radius: 50%;
+    z-index: 1;
+}
+.circle-container span {
+    position: relative;
+    z-index: 2;
+}
 
-    /* Streamlit default widgets */
-    .stButton>button {
-        background-color: #333333;
-        color: #ffffff;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #555555;
-        color: #ffffff;
-    }
-
-    .stTextInput>div>input {
-        background-color: #1a1a1a;
-        color: #f0f0f0;
-    }
-    </style>
+/* Buttons & Inputs */
+.stButton>button {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+}
+.stButton>button:hover {
+    background-color: #555555;
+    color: #ffffff;
+}
+.stTextInput>div>input {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+}
+</style>
 """, unsafe_allow_html=True)
 
-
-# --- Title ---
+# --- App Title ---
 st.markdown("<h1 class='main-title'>🌈 Mood-Based Wellness Recommender</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtext'>Get personalized wellness content based on how you're feeling 💫</p>", unsafe_allow_html=True)
 
-# --- Mood Input Section ---
+# --- Mood Input ---
 st.markdown("### 💬 Describe how you're feeling today:")
 user_input = st.text_input("Type something like 'I feel a bit tired but peaceful today'")
 
@@ -188,23 +193,19 @@ else:
     st.info("Or you can select your mood manually below 👇")
     detected_mood = None
 
-# --- Manual Mood Fallback ---
+# --- Manual Mood Selection ---
+mood_list = ["happy","stressed","anxious","calm","sad","motivated","tired","lonely","angry","relaxed","overwhelmed","bored","grateful"]
 mood = st.selectbox(
     "💭 Choose manually if needed:",
-    [
-        "happy", "stressed", "anxious", "calm", "sad",
-        "motivated", "tired", "lonely", "angry",
-        "relaxed", "overwhelmed", "bored", "grateful"
-    ],
-    index=0 if detected_mood is None else 
-          ["happy","stressed","anxious","calm","sad","motivated","tired","lonely","angry","relaxed","overwhelmed","bored","grateful"].index(detected_mood)
+    mood_list,
+    index=0 if detected_mood is None else mood_list.index(detected_mood)
 )
 
 # --- Category Selection ---
 st.markdown("### 🎯 What would you like to explore?")
 categories = {
     "Music": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
-    "Meditation": "https://www.shutterstock.com/image-vector/yoga-icon-logo-on-white-600nw-1250774467.jpg",  # lotus position person
+    "Meditation": "https://www.shutterstock.com/image-vector/yoga-icon-logo-on-white-600nw-1250774467.jpg",
     "Podcast": "https://www.shutterstock.com/image-vector/retro-microphone-sign-vector-illustration-600nw-506413456.jpg",
     "Reading": "https://cdn-icons-png.flaticon.com/512/2991/2991109.png"
 }
