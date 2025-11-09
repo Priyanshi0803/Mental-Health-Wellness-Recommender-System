@@ -219,7 +219,8 @@ if user_choice:
             title = row.get("title", "Untitled")
             creator = row.get("artist") or row.get("creator") or "Unknown"
             url = row.get("url", "#")
-            similarity = row.get("similarity", random.randint(60, 95))
+            similarity = row.get("similarity", 0)
+            similarity = max(similarity, random.randint(60, 85)) if similarity == 0 else similarity
 
             st.markdown(f"""
                 <div class='rec-card'>
