@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+from textblob import TextBlob
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -39,6 +40,41 @@ def get_recommendations(df, mood, top_n=10):
     df = df.sort_values(by="similarity", ascending=False)
     return df.head(top_n)
 
+# --- Smart Mood Detection ---
+def detect_mood_from_text(text):
+    text = text.lower()
+    sentiment = TextBlob(text).sentiment.polarity
+
+    # Keyword-based clues
+    mood_keywords = {
+        "happy": ["happy", "joy", "excited", "smile", "good", "grateful"],
+        "stressed": ["stressed", "pressure", "tense", "tight"],
+        "anxious": ["anxious", "nervous", "worried", "uneasy"],
+        "calm": ["calm", "peaceful", "relaxed", "serene"],
+        "sad": ["sad", "down", "depressed", "upset"],
+        "motivated": ["motivated", "focused", "driven"],
+        "tired": ["tired", "exhausted", "sleepy", "drained"],
+        "lonely": ["lonely", "alone", "isolated"],
+        "angry": ["angry", "mad", "furious"],
+        "relaxed": ["relaxed", "chill", "easygoing"],
+        "overwhelmed": ["overwhelmed", "burned out"],
+        "bored": ["bored", "dull", "uninterested"],
+        "grateful": ["thankful", "grateful", "blessed"]
+    }
+
+    # Try matching keywords
+    for mood, words in mood_keywords.items():
+        if any(word in text for word in words):
+            return mood
+
+    # Fallback to sentiment polarity
+    if sentiment > 0.4:
+        return "happy"
+    elif sentiment < -0.3:
+        return "sad"
+    else:
+        return "calm"
+
 # --- Streamlit Config ---
 st.set_page_config(page_title="Mood-Based Wellness Recommender", page_icon="🌈", layout="centered")
 
@@ -72,8 +108,6 @@ st.markdown("""
         transform: scale(1.02);
         box-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
-
-    /* Gradient Ring Indicator */
     .circle-container {
         position: relative;
         width: 70px;
@@ -95,7 +129,6 @@ st.markdown("""
         font-size: 14px;
         transition: background 0.5s ease;
     }
-
     .circle-container::before {
         content: "";
         position: absolute;
@@ -116,19 +149,31 @@ st.markdown("""
 st.markdown("<h1 class='main-title'>🌈 Mood-Based Wellness Recommender</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtext'>Get personalized wellness content based on how you're feeling 💫</p>", unsafe_allow_html=True)
 
-# --- Mood Selection ---
+# --- Mood Input Section ---
+st.markdown("### 💬 Describe how you're feeling today:")
+user_input = st.text_input("Type something like 'I feel a bit tired but peaceful today'")
+
+if user_input:
+    detected_mood = detect_mood_from_text(user_input)
+    st.success(f"🧠 Detected Mood: **{detected_mood.capitalize()}**")
+else:
+    st.info("Or you can select your mood manually below 👇")
+    detected_mood = None
+
+# --- Manual Mood Fallback ---
 mood = st.selectbox(
-    "💭 How are you feeling today?",
+    "💭 Choose manually if needed:",
     [
         "happy", "stressed", "anxious", "calm", "sad",
         "motivated", "tired", "lonely", "angry",
         "relaxed", "overwhelmed", "bored", "grateful"
-    ]
+    ],
+    index=0 if detected_mood is None else 
+          ["happy","stressed","anxious","calm","sad","motivated","tired","lonely","angry","relaxed","overwhelmed","bored","grateful"].index(detected_mood)
 )
 
+# --- Category Selection ---
 st.markdown("### 🎯 What would you like to explore?")
-
-# --- Categories ---
 categories = {
     "Music": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
     "Meditation": "https://www.shutterstock.com/image-vector/yoga-icon-logo-on-white-600nw-1250774467.jpg",  # lotus position person
@@ -146,7 +191,7 @@ for i, (label, img_url) in enumerate(categories.items()):
             st.session_state.user_choice = label
             user_choice = label
 
-# --- Recommendations ---
+# --- Recommendations Section ---
 if user_choice:
     st.markdown(f"### ✨ Recommendations for you ({user_choice} - feeling *{mood}*)")
 
@@ -157,13 +202,11 @@ if user_choice:
         "Reading": reading
     }.get(user_choice)
 
-    # If first time, generate and store mood-specific recommendations
     if "recs" not in st.session_state or st.session_state.get("last_mood") != mood or st.session_state.get("last_choice") != user_choice:
         st.session_state.recs = get_recommendations(df, mood, top_n=10)
         st.session_state.last_mood = mood
         st.session_state.last_choice = user_choice
 
-    # Shuffle button
     if st.button("🔀 Shuffle Recommendations"):
         st.session_state.recs = st.session_state.recs.sample(frac=1).reset_index(drop=True)
 
@@ -191,4 +234,4 @@ if user_choice:
                 </div>
             """, unsafe_allow_html=True)
 
-st.caption("🩵 Built to support your mind and mood with care.")
+st.caption("🩵 Built to support your mind and mood with care — now smarter with AI mood detection 🧠🌿")
