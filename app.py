@@ -81,23 +81,32 @@ st.set_page_config(page_title="Mood-Based Wellness Recommender", page_icon="🌈
 # --- Custom CSS ---
 st.markdown("""
     <style>
+    /* Body background */
+    body, .main {
+        background-color: #0d0d0d;
+        color: #f0f0f0;
+    }
+
+    /* Titles and text */
     .main-title {
         font-size: 42px;
         font-weight: 800;
         text-align: center;
-        color: #222;
+        color: #ffffff;
     }
     .subtext {
         text-align: center;
-        color: gray;
+        color: #cccccc;
         font-size: 18px;
         margin-bottom: 40px;
     }
+
+    /* Cards */
     .rec-card {
-        background: #fff;
+        background: #1a1a1a;
         border-radius: 15px;
         padding: 15px 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(255,255,255,0.05);
         margin-bottom: 15px;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         display: flex;
@@ -106,8 +115,10 @@ st.markdown("""
     }
     .rec-card:hover {
         transform: scale(1.02);
-        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 14px rgba(255,255,255,0.1);
     }
+
+    /* Circular indicator */
     .circle-container {
         position: relative;
         width: 70px;
@@ -125,7 +136,7 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: #333;
+        color: #fff;
         font-size: 14px;
         transition: background 0.5s ease;
     }
@@ -134,7 +145,7 @@ st.markdown("""
         position: absolute;
         width: 55px;
         height: 55px;
-        background-color: white;
+        background-color: #0d0d0d;
         border-radius: 50%;
         z-index: 1;
     }
@@ -142,8 +153,25 @@ st.markdown("""
         position: relative;
         z-index: 2;
     }
+
+    /* Streamlit default widgets */
+    .stButton>button {
+        background-color: #333333;
+        color: #ffffff;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #555555;
+        color: #ffffff;
+    }
+
+    .stTextInput>div>input {
+        background-color: #1a1a1a;
+        color: #f0f0f0;
+    }
     </style>
 """, unsafe_allow_html=True)
+
 
 # --- Title ---
 st.markdown("<h1 class='main-title'>🌈 Mood-Based Wellness Recommender</h1>", unsafe_allow_html=True)
