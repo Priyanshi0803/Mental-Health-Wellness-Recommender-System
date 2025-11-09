@@ -3,6 +3,7 @@ pandas
 scikit-learn
 numpy
 requests
+textblob
 
 
 
